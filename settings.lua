@@ -1,0 +1,27 @@
+-- data:extend({
+--     {
+--         type = "bool-setting",
+--         name = "loc-eqpm-grid",
+--         order = "cb",
+--         setting_type = "startup",
+--         default_value = false,
+--     },
+--     {
+--         type = "int-setting",
+--         name = "loc-eqpm-grid-w",
+--         order = "cc",
+--         setting_type = "startup",
+--         minimum_value = 2,
+--         default_value = 2,
+--         maximum_value = 16
+--     },
+--     {
+--         type = "int-setting",
+--         name = "loc-eqpm-grid-h",
+--         order = "cd",
+--         setting_type = "startup",
+--         minimum_value = 2,
+--         default_value = 4,
+--         maximum_value = 16
+--     }
+-- })

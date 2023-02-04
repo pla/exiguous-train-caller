@@ -1,0 +1,13 @@
+{
+    "name": "etc",
+    "version": "1.0.0",
+    "factorio_version": "1.1",
+    "title": "Evil's Train Caller",
+    "author": "EvilPLa",
+    "dependencies": [
+      "base >= 1.1.0",
+      "flib >= 0.12.4",
+      "?electric-shuttle-train"
+    ],
+    "description": "Call a train"
+}
