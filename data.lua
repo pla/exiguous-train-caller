@@ -8,13 +8,13 @@ data:extend {
   {
     type = 'custom-input',
     name = 'etc-two',
-    key_sequence = 'ALT + J',
+    key_sequence = 'CONTROL + J',
     enabled_while_spectating = false,
   },
   {
     type = 'custom-input',
     name = 'etc-three',
-    key_sequence = 'CONTROL + ALT + K',
+    key_sequence = 'CONTROL + K',
     enabled_while_spectating = false,
   },
 }
