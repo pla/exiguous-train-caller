@@ -1,6 +1,4 @@
-local flib_area = require("__flib__.area")
--- TODO switch to flib_bounding_box when it's fixed
-local flib_pos = require("__flib__.position")
+local util = require("__core__.lualib.util")
 
 local SEARCH_RANGE = 16
 
@@ -102,17 +100,16 @@ end
 ---@param player LuaPlayer
 ---@return LuaEntity|nil
 local function find_rail(player)
-  local position = player.position
   local old_distance = nil
+  local position =player.position
   local the_rail = nil --[[@as LuaEntity]]
-  -- local area = flib_box.from_dimensions(position, search_range, search_range)
-  local area = flib_area.expand(flib_area.from_position(position, true), SEARCH_RANGE)
 
   local rails = player.surface.find_entities_filtered({
     type = "straight-rail",
     force = player.force,
     to_be_deconstructed = false,
-    -- area = area
+    position = position,
+    radius = SEARCH_RANGE
   })
 
   if table_size(rails) == 0 then
@@ -121,7 +118,7 @@ local function find_rail(player)
   end
 
   for _, rail in pairs(rails) do
-    local distance = flib_pos.distance_squared(position, rail.position)
+    local distance = util.distance(position, rail.position)
     if not old_distance or distance < old_distance then
       old_distance = distance
       the_rail = rail
@@ -139,7 +136,7 @@ local function set_working(train, the_rail, player)
   global.trains[train.id].state = "working"
   global.trains[train.id].tick = game.tick
   global.trains[train.id].rail = the_rail
-  local distance = flib_pos.distance(the_rail.position, train.front_rail.position)
+  local distance = util.distance(the_rail.position, train.front_rail.position)
   player.print({ "etc.en-route", global.trains[train.id].loco, math.floor(distance) })
 
 end
@@ -242,7 +239,7 @@ local function on_train_changed_state(event)
           remove_current_stop(train)
           set_idle(train)
           if global.trains[train.id].player.valid then
-            local distance = flib_pos.distance(global.trains[train.id].player.position, train.front_rail.position)
+            local distance = util.distance(global.trains[train.id].player.position, train.front_rail.position)
             global.trains[train.id].player.print({ "etc.arrived", global.trains[train.id].loco, math.floor(distance) })
           end
         end

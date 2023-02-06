@@ -6,7 +6,6 @@
     "author": "EvilPLa",
     "dependencies": [
       "base >= 1.1.0",
-      "flib >= 0.12.4",
       "?electric-shuttle-train"
     ],
     "description": "Call a train"
