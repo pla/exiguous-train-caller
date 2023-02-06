@@ -2,7 +2,7 @@ local flib_area = require("__flib__.area")
 -- TODO switch to flib_bounding_box when it's fixed
 local flib_pos = require("__flib__.position")
 
-local search_range = 16
+local SEARCH_RANGE = 16
 
 local function new_train(player, train, input_name, surface_index, unit_number)
   return {
@@ -19,7 +19,7 @@ local function clear_oprphan_trains()
   local del_keys = {}
   for key, train_data in pairs(global.trains) do
     if not train_data.train.valid then
-      table.insert(del_keys , key)
+      table.insert(del_keys, key)
     end
   end
   for _, value in pairs(del_keys) do
@@ -32,11 +32,21 @@ end
 ---@param train LuaTrain
 ---@param event CustomInputEvent
 local function register_train(player, train, event)
-  local data = {
-    [event.input_name] = player.opened, -- locomotive
-  }
-  global.etc[event.player_index] = data
-  global.trains[train.id] = new_train(player, train, event.input_name, player.opened.surface_index,
+  local etc = global.etc
+  local player_id = player.index
+  local surface_index = player.opened.surface_index
+
+  if not etc[player_id] then
+    etc[player_id] = {}
+  end
+
+  if not etc[player_id][surface_index] then
+    etc[player_id][surface_index] = {}
+  end
+
+  etc[player_id][surface_index][event.input_name] = player.opened -- locomotive
+
+  global.trains[train.id] = new_train(player, train, event.input_name, surface_index,
     player.opened.unit_number)
   player.print({ "etc.registered", player.opened.unit_number, event.input_name })
 
@@ -96,13 +106,13 @@ local function find_rail(player)
   local old_distance = nil
   local the_rail = nil --[[@as LuaEntity]]
   -- local area = flib_box.from_dimensions(position, search_range, search_range)
-  local area = flib_area.expand(flib_area.from_position(position, true), search_range)
+  local area = flib_area.expand(flib_area.from_position(position, true), SEARCH_RANGE)
 
   local rails = player.surface.find_entities_filtered({
     type = "straight-rail",
     force = player.force,
     to_be_deconstructed = false,
-    area = area
+    -- area = area
   })
 
   if table_size(rails) == 0 then
@@ -145,16 +155,18 @@ end
 
 ---@param event CustomInputEvent
 local function on_call_train(event)
-  local player = game.get_player(event.player_index)
+  local player = game.get_player(event.player_index) --[[@as LuaPlayer]]
   if not player then return end
-  if global.etc[event.player_index] and global.etc[event.player_index][event.input_name] then
+  if global.etc[event.player_index] and
+      global.etc[event.player_index][player.surface_index] and
+      global.etc[event.player_index][player.surface_index][event.input_name] then
     -- send train if possible
-    local loco = global.etc[event.player_index][event.input_name]
+    local loco = global.etc[event.player_index][player.surface_index][event.input_name]
     -- check loco exists
     if not loco.valid then
       clear_oprphan_trains()
 
-      global.etc[event.player_index][event.input_name] = nil
+      global.etc[event.player_index][player.surface_index][event.input_name] = nil
       player.print({ "etc.invalid", event.input_name })
       return
     end
@@ -164,7 +176,12 @@ local function on_call_train(event)
       clear_oprphan_trains()
       global.trains[train.id] = new_train(player, train, event.input_name, player.surface_index, loco.unit_number)
     end
-    --todo check player not in train/shuttle
+    --todo check player in train and open ui
+    if player.vehicle and player.vehicle.type == "locomotive" and player.vehicle.train.id == train.id then
+      player.opened = player.vehicle
+      return
+    end
+    -- sending train finally
     -- rail in reach
     local the_rail = find_rail(player)
     if not the_rail then return end
@@ -184,8 +201,8 @@ local function on_call_train(event)
       local train = player.opened.train --[[@as LuaTrain]]
       --todo:check if train isn't in working state atm, eg. for someone else
       register_train(player, train, event)
-    elseif player.opened==nil then
-      player.print({"etc.not-set",event.input_name})
+    elseif player.opened == nil then
+      player.print({ "etc.not-set", event.input_name })
     end
   end
 end
