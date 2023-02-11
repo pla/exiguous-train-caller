@@ -2,11 +2,10 @@
     "name": "etc",
     "version": "1.0.0",
     "factorio_version": "1.1",
-    "title": "Evil's Train Caller",
+    "title": "Exiguous Train Caller",
     "author": "EvilPLa",
     "dependencies": [
-      "base >= 1.1.0",
-      "?electric-shuttle-train"
+      "base >= 1.1.0"
     ],
-    "description": "Call a train"
+    "description": "Call a train. Spiders come when called, why shouldn't trains do the same?"
 }

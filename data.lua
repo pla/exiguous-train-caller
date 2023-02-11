@@ -17,4 +17,10 @@ data:extend {
     key_sequence = 'CONTROL + K',
     enabled_while_spectating = false,
   },
+  {
+    type = 'custom-input',
+    name = 'etc-four',
+    key_sequence = '',
+    enabled_while_spectating = false,
+  },
 }

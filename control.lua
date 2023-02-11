@@ -4,12 +4,12 @@ local SEARCH_RANGE = 16
 
 local function new_train(player, train, input_name, surface_index, unit_number)
   return {
-    state = "idle",
-    player = player,
-    train = train,
-    key = input_name,
-    surface_index = surface_index,
-    loco = unit_number
+      state = "idle",
+      player = player,
+      train = train,
+      key = input_name,
+      surface_index = surface_index,
+      loco = unit_number
   }
 end
 
@@ -45,9 +45,8 @@ local function register_train(player, train, event)
   etc[player_id][surface_index][event.input_name] = player.opened -- locomotive
 
   global.trains[train.id] = new_train(player, train, event.input_name, surface_index,
-    player.opened.unit_number)
+          player.opened.unit_number)
   player.print({ "etc.registered", player.opened.unit_number, event.input_name })
-
 end
 
 ---Remove the current temp stop
@@ -76,20 +75,20 @@ local function add_record(old_schedule, the_rail)
   local schedule = old_schedule
   if not schedule then
     schedule = {
-      current = 1,
-      records = {}
+        current = 1,
+        records = {}
     }
   end
   local new_record = {
-    rail = the_rail,
-    temporary = true,
-    wait_conditions = {
-      {
-        type = "time",
-        compare_type = "or",
-        ticks = 60,
+      rail = the_rail,
+      temporary = true,
+      wait_conditions = {
+          {
+              type = "time",
+              compare_type = "or",
+              ticks = 60,
+          }
       }
-    }
   }
   table.insert(schedule.records, schedule.current, new_record)
 
@@ -101,16 +100,16 @@ end
 ---@return LuaEntity|nil
 local function find_rail(player)
   local old_distance = nil
-  local position =player.position
+  local position = player.position
   local the_rail = nil --[[@as LuaEntity]]
 
   local rails = player.surface.find_entities_filtered({
-    type = "straight-rail",
-    force = player.force,
-    to_be_deconstructed = false,
-    position = position,
-    radius = SEARCH_RANGE
-  })
+          type = "straight-rail",
+          force = player.force,
+          to_be_deconstructed = false,
+          position = position,
+          radius = SEARCH_RANGE
+      })
 
   if table_size(rails) == 0 then
     player.print({ "etc.no-rail-found" })
@@ -138,7 +137,6 @@ local function set_working(train, the_rail, player)
   global.trains[train.id].rail = the_rail
   local distance = util.distance(the_rail.position, train.front_rail.position)
   player.print({ "etc.en-route", global.trains[train.id].loco, math.floor(distance) })
-
 end
 
 ---Set the train to idle
@@ -147,7 +145,6 @@ local function set_idle(train)
   global.trains[train.id].state = "idle"
   global.trains[train.id].tick = nil
   global.trains[train.id].rail = nil
-
 end
 
 ---@param event CustomInputEvent
@@ -189,7 +186,6 @@ local function on_call_train(event)
     train.schedule = add_record(train.schedule, the_rail)
     train.go_to_station(train.schedule.current)
     set_working(train, the_rail, player)
-
   else
     -- register train if possible
     if player.opened_gui_type == defines.gui_type.entity and
@@ -216,11 +212,10 @@ local function on_train_schedule_changed(event)
       set_idle(train)
       if global.trains[train.id].player.valid then
         global.trains[train.id].player.print({ "etc.schedule-changed", global.trains[train.id].loco,
-          global.trains[train.id].key })
+            global.trains[train.id].key })
       end
     end
   end
-
 end
 
 local function on_train_changed_state(event)
@@ -258,6 +253,7 @@ end
 script.on_event("etc-one", on_call_train)
 script.on_event("etc-two", on_call_train)
 script.on_event("etc-three", on_call_train)
+script.on_event("etc-four", on_call_train)
 
 script.on_init(function()
   global.etc = {}
@@ -267,3 +263,19 @@ end)
 script.on_event(defines.events.on_train_schedule_changed, on_train_schedule_changed)
 
 script.on_event(defines.events.on_train_changed_state, on_train_changed_state)
+
+commands.add_command("etc-list", { "etc.command-help" }, function(event)
+  local player = game.get_player(event.player_index)
+  if player == nil then return end
+  for surface_index, register in pairs(global.etc[event.player_index]) do
+    player.print("Surface: " .. game.surfaces[surface_index].name)
+    for key, value in pairs(register) do
+      local loco = value
+      if loco.valid then
+        player.print({ "etc.list", loco.unit_number, key })
+      else
+        player.print({ "", { "gui-train.invalid" }, " ", { "etc.list", 0, key } })
+      end
+    end
+  end
+end)
