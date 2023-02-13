@@ -112,7 +112,7 @@ local function find_rail(player)
       })
 
   if table_size(rails) == 0 then
-    player.print({ "etc.no-rail-found" })
+    player.print({ "gui-train.too-far-from-rail" })
     return nil
   end
 
