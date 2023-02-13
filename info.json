@@ -7,5 +7,5 @@
     "dependencies": [
       "base >= 1.1.0"
     ],
-    "description": "Call a train. Spiders come when called, why shouldn't trains do the same?"
+    "description": "Call a train. Spiders come when called, why shouldn't trains do the same?\nPersonal shuttle, Build train, Artillery or any train with cargo you need right in front of you."
 }
