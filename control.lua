@@ -4,12 +4,12 @@ local SEARCH_RANGE = 16
 
 local function new_train(player, train, input_name, surface_index, unit_number)
   return {
-      state = "idle",
-      player = player,
-      train = train,
-      key = input_name,
-      surface_index = surface_index,
-      loco = unit_number
+    state = "idle",
+    player = player,
+    train = train,
+    key = input_name,
+    surface_index = surface_index,
+    loco = unit_number
   }
 end
 
@@ -45,7 +45,7 @@ local function register_train(player, train, event)
   etc[player_id][surface_index][event.input_name] = player.opened -- locomotive
 
   global.trains[train.id] = new_train(player, train, event.input_name, surface_index,
-          player.opened.unit_number)
+    player.opened.unit_number)
   player.print({ "etc.registered", player.opened.unit_number, event.input_name })
 end
 
@@ -70,26 +70,50 @@ end
 ---Adds a new record to the given schedule and returns it
 ---@param old_schedule TrainSchedule
 ---@param the_rail LuaEntity
+---@param player LuaPlayer
 ---@returns schedule TrainSchedule
-local function add_record(old_schedule, the_rail)
+local function add_record(old_schedule, the_rail, player)
   local schedule = old_schedule
+  local wait = player.mod_settings["etc-wait-min"].value * 60 * 60
+  local mode = player.mod_settings["etc-arrival-action"].value
+  local new_record
+
   if not schedule then
     schedule = {
-        current = 1,
-        records = {}
+      current = 1,
+      records = {}
     }
   end
-  local new_record = {
+  if mode == "Automatic" then
+    new_record = {
       rail = the_rail,
       temporary = true,
       wait_conditions = {
-          {
-              type = "time",
-              compare_type = "or",
-              ticks = 60,
-          }
+        {
+          type = "time",
+          compare_type = "or",
+          ticks = wait,
+        },
+        {
+          type = "passenger_present",
+          compare_type = "or",
+        },
       }
-  }
+    }
+  else
+    new_record = {
+      rail = the_rail,
+      temporary = true,
+      wait_conditions = {
+        {
+          type = "time",
+          compare_type = "or",
+          ticks = 60,
+        },
+      }
+    }
+  end
+
   table.insert(schedule.records, schedule.current, new_record)
 
   return schedule
@@ -104,12 +128,12 @@ local function find_rail(player)
   local the_rail = nil --[[@as LuaEntity]]
 
   local rails = player.surface.find_entities_filtered({
-          type = "straight-rail",
-          force = player.force,
-          to_be_deconstructed = false,
-          position = position,
-          radius = SEARCH_RANGE
-      })
+    type = "straight-rail",
+    force = player.force,
+    to_be_deconstructed = false,
+    position = position,
+    radius = SEARCH_RANGE
+  })
 
   if table_size(rails) == 0 then
     player.print({ "gui-train.too-far-from-rail" })
@@ -137,6 +161,14 @@ local function set_working(train, the_rail, player)
   global.trains[train.id].rail = the_rail
   local distance = util.distance(the_rail.position, train.front_rail.position)
   player.print({ "etc.en-route", global.trains[train.id].loco, math.floor(distance) })
+end
+
+---Set to waiting mode
+---@param train LuaTrain
+local function set_waiting(train)
+  global.trains[train.id].state = "waiting"
+  global.trains[train.id].tick = game.tick
+  -- global.trains[train.id].rail = nil
 end
 
 ---Set the train to idle
@@ -180,10 +212,10 @@ local function on_call_train(event)
     local the_rail = find_rail(player)
     if not the_rail then return end
     -- train already in working state?
-    if global.trains[train.id].state == "working" then
+    if global.trains[train.id].state == "working" or global.trains[train.id].state == "waiting" then
       remove_current_stop(train)
     end
-    train.schedule = add_record(train.schedule, the_rail)
+    train.schedule = add_record(train.schedule, the_rail, player)
     train.go_to_station(train.schedule.current)
     set_working(train, the_rail, player)
   else
@@ -204,7 +236,7 @@ local function on_train_schedule_changed(event)
   local train = event.train
   if not event.player_index then return end
   --is that an etc train?
-  if global.trains[train.id] and global.trains[train.id].state == "working" then
+  if global.trains[train.id] and global.trains[train.id].state == "working" then -- #FIXME waiting
     --if the current is no temp then give the train up
     if train.schedule.records and
         train.schedule.current and
@@ -212,7 +244,7 @@ local function on_train_schedule_changed(event)
       set_idle(train)
       if global.trains[train.id].player.valid then
         global.trains[train.id].player.print({ "etc.schedule-changed", global.trains[train.id].loco,
-            global.trains[train.id].key })
+          global.trains[train.id].key })
       end
     end
   end
@@ -226,26 +258,61 @@ local function on_train_changed_state(event)
   then
     --is that an etc train?
     if not global.trains then global.trains = {} end
-    if global.trains[train.id] and global.trains[train.id].state == "working" then
+    if not global.trains[train.id] then return end
+    local player = global.trains[train.id].player
+    if not player then return end
+
+    if global.trains[train.id].state == "working" then
       -- are we there yet?
       if train.state == defines.train_state.wait_station then
         if train.front_rail.is_rail_in_same_rail_block_as(global.trains[train.id].rail) then
-          train.manual_mode = true
-          remove_current_stop(train)
-          set_idle(train)
-          if global.trains[train.id].player.valid then
-            local distance = util.distance(global.trains[train.id].player.position, train.front_rail.position)
-            global.trains[train.id].player.print({ "etc.arrived", global.trains[train.id].loco, math.floor(distance) })
+          if player.mod_settings["etc-arrival-action"].value == "Automatic" then
+            set_waiting(train)
+          else
+            remove_current_stop(train)
+            set_idle(train)
+            train.manual_mode = true
           end
+          local distance = util.distance(player.position, train.front_rail.position)
+          player.print({ "etc.arrived", global.trains[train.id].loco, math.floor(distance) })
         end
         -- lost track?
       elseif train.state == defines.train_state.no_path or
           train.state == defines.train_state.path_lost then
-        if global.trains[train.id].player.valid then
-          global.trains[train.id].player.print({ "etc.lost-path", global.trains[train.id].loco })
-        end
+        player.print({ "etc.lost-path", global.trains[train.id].loco })
       end
+    elseif global.trains[train.id] and global.trains[train.id].state == "waiting" then
+      -- wont wait anymore
+      set_idle(train)
     end
+  end
+end
+
+---react when player enters the train in waiting mode
+---@param event EventData.on_player_driving_changed_state
+local function on_player_driving_changed_state(event)
+  if not event.entity or
+      not event.entity.valid or
+      not event.entity.train or
+      not event.entity.train.valid then
+    return
+  end
+  local player = game.players[event.player_index]
+  -- if not player then return end
+  --check if player vehicle is train
+  if not player or
+      not player.vehicle
+  then
+    return
+  end
+  local train = player.vehicle.train
+  if not train or not train.valid then return end
+  -- check if etc train and waiting
+  if global.trains[train.id] and global.trains[train.id].state == "waiting" and
+      player.index == global.trains[train.id].player.index then
+    remove_current_stop(train)
+    set_idle(train)
+    train.manual_mode = true
   end
 end
 
@@ -261,13 +328,14 @@ script.on_init(function()
 end)
 
 script.on_event(defines.events.on_train_schedule_changed, on_train_schedule_changed)
-
 script.on_event(defines.events.on_train_changed_state, on_train_changed_state)
+script.on_event(defines.events.on_player_driving_changed_state, on_player_driving_changed_state)
 
 commands.add_command("etc-list", { "etc.command-help" }, function(event)
   local player = game.get_player(event.player_index)
   if player == nil then return end
   for surface_index, register in pairs(global.etc[event.player_index]) do
+    player.print("Player: " .. player.name)
     player.print("Surface: " .. game.surfaces[surface_index].name)
     for key, value in pairs(register) do
       local loco = value

@@ -5,9 +5,10 @@
     "title": "Exiguous Train Caller",
     "author": "EvilPLa",
     "dependencies": [
-      "base >= 1.1.0"
+      "base >= 1.1.0",
+      "? manual-trains-at-temp-stops"
     ],
-    "description": "Call a train. Spiders come when called, why shouldn't trains do the same?\nPersonal shuttle, build train, artillery or any train with cargo you need right in front of you.",
+    "description": "Call a train. Spiders come when called, why shouldn't trains do the same?\nPersonal shuttle, build train, artillery or any train you need right in front of you.",
     "package": {
       "readme": "README.md"
     }
