@@ -34,3 +34,5 @@ Now you can call the train with the same key sequence from anywhere in your rail
 * every surface can have its own set of personal trains, but not across the space elevator
 
 Because the called train behaves like a normal trains when you are riding it, I always use the mod [Trains Switch to Manual at Temporary Stops](https://mods.factorio.com/mod/manual-trains-at-temp-stops) on top, else your train will go its way, which is not how a personal train should behave.
+
+[Shout icon created by Freepik - Flaticon](https://www.flaticon.com/free-icons/shout)
