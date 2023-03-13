@@ -266,13 +266,14 @@ local function on_train_changed_state(event)
       -- are we there yet?
       if train.state == defines.train_state.wait_station then
         if train.front_rail.is_rail_in_same_rail_block_as(global.trains[train.id].rail) then
-          if player.mod_settings["etc-arrival-action"].value == "Automatic" then
+          if player.mod_settings["etc-arrival-action"].value == "Automatic" and not global.trains[train.id].save_to_stop then
             set_waiting(train)
           else
             remove_current_stop(train)
             set_idle(train)
             train.manual_mode = true
           end
+          global.trains[train.id].save_to_stop = nil
           local distance = util.distance(player.position, train.front_rail.position)
           player.print({ "etc.arrived", global.trains[train.id].loco, math.floor(distance) })
         end
@@ -288,31 +289,47 @@ local function on_train_changed_state(event)
   end
 end
 
+local function check_player_in_etc_train(player, train)
+  --check if player vehicle is train
+  if not (player and
+      player.vehicle and
+      player.vehicle.train and
+      player.vehicle.train.valid and
+      train and
+      train.valid)
+  then
+    return false
+  end
+  -- check if player in train
+  if global.trains[train.id] and train.id == player.vehicle.train.id then
+    return true
+  end
+  return false
+end
+
+
 ---react when player enters the train in waiting mode
 ---@param event EventData.on_player_driving_changed_state
 local function on_player_driving_changed_state(event)
-  if not event.entity or
-      not event.entity.valid or
-      not event.entity.train or
-      not event.entity.train.valid then
+  if not (event.entity and
+      event.entity.valid and
+      event.entity.train and
+      event.entity.train.valid) then
     return
   end
   local player = game.players[event.player_index]
-  -- if not player then return end
-  --check if player vehicle is train
-  if not player or
-      not player.vehicle
-  then
-    return
-  end
-  local train = player.vehicle.train
+  local train = event.entity.train
   if not train or not train.valid then return end
   -- check if etc train and waiting
-  if global.trains[train.id] and global.trains[train.id].state == "waiting" and
-      player.index == global.trains[train.id].player.index then
+  if not check_player_in_etc_train(player, train) then return end
+
+  if global.trains[train.id].state == "waiting" then
     remove_current_stop(train)
     set_idle(train)
     train.manual_mode = true
+  elseif global.trains[train.id].state == "working" and
+      player.mod_settings["etc-arrival-action"].value == "Automatic" then
+    global.trains[train.id].save_to_stop = true
   end
 end
 
