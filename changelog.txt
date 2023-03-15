@@ -1,8 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.2
+Date: 2023-03-15
+  Changes:
+    - Fixed missing description and tooltip
+---------------------------------------------------------------------------------------------------
 Version: 1.0.1
 Date: 2023-03-13
   Changes:
-    - Fixed Train doesn't stop when entred early in Automatic mode
+    - Fixed train doesn't stop when entered early in Automatic mode
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.0
 Date: 2023-03-10
