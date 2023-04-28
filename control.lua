@@ -28,7 +28,7 @@ end
 --- register a LuaTrain for calling, actually the locomotive
 ---@param player LuaPlayer
 ---@param train LuaTrain
----@param event CustomInputEvent
+---@param event EventData.CustomInputEvent
 local function register_train(player, train, event)
   local etc = global.etc
   local player_id = player.index
@@ -179,7 +179,7 @@ local function set_idle(train)
   global.trains[train.id].rail = nil
 end
 
----@param event CustomInputEvent
+---@param event EventData.CustomInputEvent
 local function on_call_train(event)
   local player = game.get_player(event.player_index) --[[@as LuaPlayer]]
   if not player then return end
