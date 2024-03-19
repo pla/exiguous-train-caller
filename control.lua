@@ -238,7 +238,8 @@ local function on_train_schedule_changed(event)
   --is that an etc train?
   if global.trains[train.id] and global.trains[train.id].state == "working" then -- #FIXME waiting
     --if the current is no temp then give the train up
-    if train.schedule.records and
+    if train.schedule == nil or 
+        train.schedule.records and
         train.schedule.current and
         train.schedule.records[train.schedule.current].temporary == false then
       set_idle(train)
