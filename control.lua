@@ -266,7 +266,7 @@ local function on_train_changed_state(event)
     if global.trains[train.id].state == "working" then
       -- are we there yet?
       if train.state == defines.train_state.wait_station then
-        if train.front_rail.is_rail_in_same_rail_block_as(global.trains[train.id].rail) then
+        if global.trains[train.id].rail.valid and train.front_rail.is_rail_in_same_rail_block_as(global.trains[train.id].rail) then
           if player.mod_settings["etc-arrival-action"].value == "Automatic" and not global.trains[train.id].save_to_stop then
             set_waiting(train)
           else
