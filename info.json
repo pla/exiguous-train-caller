@@ -1,11 +1,11 @@
 {
     "name": "exiguous-train-caller",
-    "version": "1.0.6",
-    "factorio_version": "1.1",
+    "version": "2.0.0",
+    "factorio_version": "2.0",
     "title": "Exiguous Train Caller",
     "author": "EvilPLa",
     "dependencies": [
-      "base >= 1.1.0",
+      "base >= 2.0.7",
       "? manual-trains-at-temp-stops"
     ],
     "description": "Call a train. Spiders come when called, why shouldn't trains do the same?\nPersonal shuttle, build train, artillery or any train you need right in front of you.",

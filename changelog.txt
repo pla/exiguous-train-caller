@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.0
+Date: 2024-10-21
+  Changes:
+    - Update for 2.0, not tested on planets yet 'cause spoilers.
+  Info:
+    - Display of the used control in chat messages doesn't work. Waiting if that's a bug
+    - Chat messages are behind the UI
+---------------------------------------------------------------------------------------------------
 Version: 1.0.6
 Date: 2024-06-02
   Changes:
