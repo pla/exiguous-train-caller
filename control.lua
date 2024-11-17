@@ -2,6 +2,11 @@ local util = require("__core__.lualib.util")
 
 local SEARCH_RANGE = 16
 
+
+local function control(string)
+  return "__CONTROL__" .. string .. "__"
+end
+
 local function new_train(player, train, input_name, surface_index, unit_number)
   return {
     state = "idle",
@@ -46,7 +51,7 @@ local function register_train(player, train, event)
 
   storage.trains[train.id] = new_train(player, train, event.input_name, surface_index,
     player.opened.unit_number)
-  player.print({ "etc.registered", player.opened.unit_number, event.input_name })
+  player.print({ "etc.registered", player.opened.unit_number, control(event.input_name) })
 end
 
 ---Remove the current temp stop
@@ -193,7 +198,7 @@ local function on_call_train(event)
       clear_oprphan_trains()
 
       storage.etc[event.player_index][player.surface_index][event.input_name] = nil
-      player.print({ "etc.invalid", event.input_name })
+      player.print({ "etc.invalid", control(event.input_name) })
       return
     end
     -- Is the reference still valid?
@@ -227,7 +232,7 @@ local function on_call_train(event)
       --todo:check if train isn't in working state atm, eg. for someone else
       register_train(player, train, event)
     elseif player.opened == nil then
-      player.print({ "etc.not-set", event.input_name })
+      player.print({ "etc.not-set", control(event.input_name) })
     end
   end
 end
@@ -245,7 +250,7 @@ local function on_train_schedule_changed(event)
       set_idle(train)
       if storage.trains[train.id].player.valid then
         storage.trains[train.id].player.print({ "etc.schedule-changed", storage.trains[train.id].loco,
-          storage.trains[train.id].key })
+          control(storage.trains[train.id].key) })
       end
     end
   end
@@ -356,9 +361,9 @@ commands.add_command("etc-list", { "etc.command-help" }, function(event)
     for key, value in pairs(register) do
       local loco = value
       if loco.valid then
-        player.print({ "etc.list", loco.unit_number, key })
+        player.print({ "etc.list", loco.unit_number, control(key) })
       else
-        player.print({ "", { "gui-train.invalid" }, " ", { "etc.list", 0, key } })
+        player.print({ "", { "gui-train.invalid" }, " ", { "etc.list", 0, control(key) } })
       end
     end
   end
