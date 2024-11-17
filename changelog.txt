@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.1
+Date: 2024-11-17
+  Changes:
+    - Fixed: Control display in chat message didn't work as expected
+    - Added floating message when registering a train, but it can only be seen when zoomed in
+---------------------------------------------------------------------------------------------------
 Version: 2.0.0
 Date: 2024-10-21
   Changes:

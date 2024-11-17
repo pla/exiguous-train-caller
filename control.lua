@@ -52,6 +52,10 @@ local function register_train(player, train, event)
   storage.trains[train.id] = new_train(player, train, event.input_name, surface_index,
     player.opened.unit_number)
   player.print({ "etc.registered", player.opened.unit_number, control(event.input_name) })
+  player.create_local_flying_text({ 
+    text = { "etc.registered", player.opened.unit_number, control(event.input_name) }, 
+    position = player.position
+  })
 end
 
 ---Remove the current temp stop
