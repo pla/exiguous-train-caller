@@ -109,7 +109,7 @@ local function add_record(old_schedule, the_rail, player)
         },
       }
     }
-  else
+  else -- manual mode
     new_record = {
       rail = the_rail,
       temporary = true,
@@ -133,10 +133,10 @@ end
 ---@return LuaEntity|nil
 local function find_rail(player)
   local old_distance = nil
-  local position = player.position
+  local position = player.physical_position
   local the_rail = nil --[[@as LuaEntity]]
 
-  local rails = player.surface.find_entities_filtered({
+  local rails = player.physical_surface.find_entities_filtered({
     type = {"straight-rail","curved-rail-a","curved-rail-b","half-diagonal-rail","legacy-straight-rail","legacy-curved-rail","rail-ramp"},
     force = player.force,
     to_be_deconstructed = false,
@@ -193,15 +193,15 @@ local function on_call_train(event)
   local player = game.get_player(event.player_index) --[[@as LuaPlayer]]
   if not player then return end
   if storage.etc[event.player_index] and
-      storage.etc[event.player_index][player.surface_index] and
-      storage.etc[event.player_index][player.surface_index][event.input_name] then
+      storage.etc[event.player_index][player.physical_surface_index] and
+      storage.etc[event.player_index][player.physical_surface_index][event.input_name] then
     -- send train if possible
-    local loco = storage.etc[event.player_index][player.surface_index][event.input_name]
+    local loco = storage.etc[event.player_index][player.physical_surface_index][event.input_name]
     -- check loco exists
     if not loco.valid then
       clear_oprphan_trains()
 
-      storage.etc[event.player_index][player.surface_index][event.input_name] = nil
+      storage.etc[event.player_index][player.physical_surface_index][event.input_name] = nil
       player.print({ "etc.invalid", control(event.input_name) })
       return
     end
@@ -209,15 +209,15 @@ local function on_call_train(event)
     local train = loco.train
     if not storage.trains[train.id] then
       clear_oprphan_trains()
-      storage.trains[train.id] = new_train(player, train, event.input_name, player.surface_index, loco.unit_number)
+      storage.trains[train.id] = new_train(player, train, event.input_name, player.physical_surface_index, loco.unit_number)
     end
-    --todo check player in train and open ui
+    -- check if player in train then open loco gui
     if player.vehicle and player.vehicle.type == "locomotive" and player.vehicle.train.id == train.id then
       player.opened = player.vehicle
       return
     end
     -- sending train finally
-    -- rail in reach
+    -- rfind ail in reach
     local the_rail = find_rail(player)
     if not the_rail then return end
     -- train already in working state?
@@ -283,7 +283,7 @@ local function on_train_changed_state(event)
             train.manual_mode = true
           end
           storage.trains[train.id].save_to_stop = nil
-          local distance = util.distance(player.position, train.front_end.location.position)
+          local distance = util.distance(player.physical_position, train.front_end.location.position)
           player.print({ "etc.arrived", storage.trains[train.id].loco, math.floor(distance) })
         end
         -- lost track?

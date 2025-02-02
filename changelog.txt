@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.2
+Date: 2025-02-02
+  Bugfixes:
+    - Fixed Train going to wrong position when in remote view
+  Info:
+    - Still no news on the Interrupt problem
+---------------------------------------------------------------------------------------------------
 Version: 2.0.1
 Date: 2024-11-17
   Changes:
