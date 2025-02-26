@@ -52,80 +52,75 @@ local function register_train(player, train, event)
   storage.trains[train.id] = new_train(player, train, event.input_name, surface_index,
     player.opened.unit_number)
   player.print({ "etc.registered", player.opened.unit_number, control(event.input_name) })
-  player.create_local_flying_text({ 
-    text = { "etc.registered", player.opened.unit_number, control(event.input_name) }, 
+  player.create_local_flying_text({
+    text = { "etc.registered", player.opened.unit_number, control(event.input_name) },
     position = player.position
   })
 end
 
----Remove the current temp stop
+---Remove the current temp stop, if it's ETC record
 ---@param train LuaTrain
 local function remove_current_stop(train)
-  local schedule = train.schedule
-  if schedule and schedule.records and schedule.current and schedule.records[schedule.current].temporary then
-    table.remove(schedule.records, schedule.current)
-    local len = table_size(schedule.records)
-    if len > 0 then
-      if schedule.current > len then
-        schedule.current = 1
-      end
-      train.schedule = schedule
-    else
-      train.schedule = nil
-    end
+  local schedule = train.get_schedule()
+  ---@type ScheduleRecord?
+  local current = schedule.get_record({schedule_index = schedule.current})
+
+  if current and current.temporary and not current.created_by_interrupt then
+    schedule.remove_record({schedule_index = schedule.current})
+
+    -- local len = schedule.get_record_count() or 0
+    -- if len > 0 then
+    --   if schedule.current > len then
+    --     schedule.current = 1
+    --   end
+    -- end
   end
 end
 
----Adds a new record to the given schedule and returns it
----@param old_schedule TrainSchedule
+---Adds a new record 
+---@param train LuaTrain
 ---@param the_rail LuaEntity
 ---@param player LuaPlayer
----@returns schedule TrainSchedule
-local function add_record(old_schedule, the_rail, player)
-  local schedule = old_schedule
+local function add_record(train, the_rail, player)
+  local schedule = train.get_schedule()
   local wait = player.mod_settings["etc-wait-min"].value * 60 * 60
   local mode = player.mod_settings["etc-arrival-action"].value
-  local new_record
+  local record_count = schedule.get_record_count() or 0
+  schedule.add_record({
+    rail = the_rail,
+    temporary = true,
+  })
 
-  if not schedule then
-    schedule = {
-      current = 1,
-      records = {}
-    }
-  end
   if mode == "Automatic" then
-    new_record = {
-      rail = the_rail,
-      temporary = true,
-      wait_conditions = {
-        {
-          type = "time",
-          compare_type = "or",
-          ticks = wait,
-        },
-        {
-          type = "passenger_present",
-          compare_type = "or",
-        },
+    schedule.add_wait_condition( {schedule_index = record_count + 1}, 1, "time" )
+    schedule.add_wait_condition( {schedule_index = record_count + 1}, 2, "passenger_present" )
+    schedule.change_wait_condition( {schedule_index = record_count + 1}, 1,
+      {
+        type = "time",
+        compare_type = "or",
+        ticks = wait,
       }
-    }
+    )
+    schedule.change_wait_condition( {schedule_index = record_count + 1}, 2,
+      {
+        type = "passenger_present",
+        compare_type = "or",
+      }
+    )
+
   else -- manual mode
-    new_record = {
-      rail = the_rail,
-      temporary = true,
-      wait_conditions = {
-        {
-          type = "time",
-          compare_type = "or",
-          ticks = 60,
-        },
+    schedule.add_wait_condition( {schedule_index = record_count + 1}, 1, "time" )
+    schedule.change_wait_condition( {schedule_index = record_count + 1}, 1,
+      {
+        type = "time",
+        compare_type = "or",
+        ticks = 60,
       }
-    }
+    )
   end
 
-  table.insert(schedule.records, schedule.current, new_record)
-
-  return schedule
+  -- move new record to "current"
+  schedule.drag_record(record_count + 1,schedule.current)
 end
 
 ---comment
@@ -137,7 +132,7 @@ local function find_rail(player)
   local the_rail = nil --[[@as LuaEntity]]
 
   local rails = player.physical_surface.find_entities_filtered({
-    type = {"straight-rail","curved-rail-a","curved-rail-b","half-diagonal-rail","legacy-straight-rail","legacy-curved-rail","rail-ramp"},
+    type = { "straight-rail", "curved-rail-a", "curved-rail-b", "half-diagonal-rail", "legacy-straight-rail", "legacy-curved-rail", "rail-ramp" },
     force = player.force,
     to_be_deconstructed = false,
     position = position,
@@ -209,7 +204,8 @@ local function on_call_train(event)
     local train = loco.train
     if not storage.trains[train.id] then
       clear_oprphan_trains()
-      storage.trains[train.id] = new_train(player, train, event.input_name, player.physical_surface_index, loco.unit_number)
+      storage.trains[train.id] = new_train(player, train, event.input_name, player.physical_surface_index,
+        loco.unit_number)
     end
     -- check if player in train then open loco gui
     if player.vehicle and player.vehicle.type == "locomotive" and player.vehicle.train.id == train.id then
@@ -224,7 +220,7 @@ local function on_call_train(event)
     if storage.trains[train.id].state == "working" or storage.trains[train.id].state == "waiting" then
       remove_current_stop(train)
     end
-    train.schedule = add_record(train.schedule, the_rail, player)
+    add_record(train, the_rail, player)
     train.go_to_station(train.schedule.current)
     set_working(train, the_rail, player)
   else
@@ -247,7 +243,7 @@ local function on_train_schedule_changed(event)
   --is that an etc train?
   if storage.trains[train.id] and storage.trains[train.id].state == "working" then
     --if the current is no temp then give the train up
-    if train.schedule == nil or 
+    if train.schedule == nil or
         train.schedule.records and
         train.schedule.current and
         train.schedule.records[train.schedule.current].temporary == false then
@@ -300,11 +296,11 @@ end
 local function check_player_in_etc_train(player, train)
   --check if player vehicle is train
   if not (player and
-      player.vehicle and
-      player.vehicle.train and
-      player.vehicle.train.valid and
-      train and
-      train.valid)
+        player.vehicle and
+        player.vehicle.train and
+        player.vehicle.train.valid and
+        train and
+        train.valid)
   then
     return false
   end
@@ -320,9 +316,9 @@ end
 ---@param event EventData.on_player_driving_changed_state
 local function on_player_driving_changed_state(event)
   if not (event.entity and
-      event.entity.valid and
-      event.entity.train and
-      event.entity.train.valid) then
+        event.entity.valid and
+        event.entity.train and
+        event.entity.train.valid) then
     return
   end
   local player = game.players[event.player_index]
