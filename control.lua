@@ -81,27 +81,30 @@ end
 ---@param train LuaTrain
 ---@param the_rail LuaEntity
 ---@param player LuaPlayer
+---@return uint new_index Index of the new Record
 local function add_record(train, the_rail, player)
   local schedule = train.get_schedule()
   local wait = player.mod_settings["etc-wait-min"].value * 60 * 60
   local mode = player.mod_settings["etc-arrival-action"].value
   local record_count = schedule.get_record_count() or 0
+  local new_index = schedule.current
   schedule.add_record({
     rail = the_rail,
     temporary = true,
   })
 
   if mode == "Automatic" then
-    schedule.add_wait_condition( {schedule_index = record_count + 1}, 1, "time" )
-    schedule.add_wait_condition( {schedule_index = record_count + 1}, 2, "passenger_present" )
-    schedule.change_wait_condition( {schedule_index = record_count + 1}, 1,
+    schedule.remove_wait_condition({schedule_index = new_index}, 1)
+    schedule.add_wait_condition( {schedule_index = new_index}, 1, "time" )
+    schedule.add_wait_condition( {schedule_index = new_index}, 2, "passenger_present" )
+    schedule.change_wait_condition( {schedule_index = new_index}, 1,
       {
         type = "time",
         compare_type = "or",
         ticks = wait,
       }
     )
-    schedule.change_wait_condition( {schedule_index = record_count + 1}, 2,
+    schedule.change_wait_condition( {schedule_index = new_index}, 2,
       {
         type = "passenger_present",
         compare_type = "or",
@@ -109,8 +112,8 @@ local function add_record(train, the_rail, player)
     )
 
   else -- manual mode
-    schedule.add_wait_condition( {schedule_index = record_count + 1}, 1, "time" )
-    schedule.change_wait_condition( {schedule_index = record_count + 1}, 1,
+    -- schedule.add_wait_condition( {schedule_index = new_index}, 1, "time" )
+    schedule.change_wait_condition( {schedule_index = new_index}, 1,
       {
         type = "time",
         compare_type = "or",
@@ -120,7 +123,8 @@ local function add_record(train, the_rail, player)
   end
 
   -- move new record to "current"
-  schedule.drag_record(record_count + 1,schedule.current)
+  -- schedule.drag_record(record_count + 1,old_current)
+  return new_index
 end
 
 ---comment
@@ -220,8 +224,8 @@ local function on_call_train(event)
     if storage.trains[train.id].state == "working" or storage.trains[train.id].state == "waiting" then
       remove_current_stop(train)
     end
-    add_record(train, the_rail, player)
-    train.go_to_station(train.schedule.current)
+    local new_record = add_record(train, the_rail, player)
+    train.go_to_station(new_record)
     set_working(train, the_rail, player)
   else
     -- register train if possible
@@ -243,10 +247,10 @@ local function on_train_schedule_changed(event)
   --is that an etc train?
   if storage.trains[train.id] and storage.trains[train.id].state == "working" then
     --if the current is no temp then give the train up
-    if train.schedule == nil or
-        train.schedule.records and
-        train.schedule.current and
-        train.schedule.records[train.schedule.current].temporary == false then
+    local schedule = train.get_schedule()
+    local current = schedule.get_record(schedule.current)
+    if current and current.temporary == false then
+
       set_idle(train)
       if storage.trains[train.id].player.valid then
         storage.trains[train.id].player.print({ "etc.schedule-changed", storage.trains[train.id].loco,

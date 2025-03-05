@@ -2,7 +2,7 @@
 Version: 2.0.3
 Date: ????
   Changes:
-    - Set minimum Factorio Version to 2.0.36, because API for schedule and interrupts introduced
+    - Set minimum Factorio Version to 2.0.38, because API for schedule and interrupts introduced
     - schedule handling according to new API
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.2
