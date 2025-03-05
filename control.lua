@@ -87,14 +87,15 @@ local function add_record(train, the_rail, player)
   local wait = player.mod_settings["etc-wait-min"].value * 60 * 60
   local mode = player.mod_settings["etc-arrival-action"].value
   local record_count = schedule.get_record_count() or 0
-  local new_index = schedule.current
-  schedule.add_record({
+  local new_index = schedule.add_record({
     rail = the_rail,
     temporary = true,
+    index = {schedule_index = schedule.current}
   })
 
+  if new_index == nil then return 0 end
   if mode == "Automatic" then
-    schedule.remove_wait_condition({schedule_index = new_index}, 1)
+    -- schedule.remove_wait_condition({schedule_index = new_index}, 1)
     schedule.add_wait_condition( {schedule_index = new_index}, 1, "time" )
     schedule.add_wait_condition( {schedule_index = new_index}, 2, "passenger_present" )
     schedule.change_wait_condition( {schedule_index = new_index}, 1,
@@ -112,7 +113,7 @@ local function add_record(train, the_rail, player)
     )
 
   else -- manual mode
-    -- schedule.add_wait_condition( {schedule_index = new_index}, 1, "time" )
+    schedule.add_wait_condition( {schedule_index = new_index}, 1, "time" )
     schedule.change_wait_condition( {schedule_index = new_index}, 1,
       {
         type = "time",

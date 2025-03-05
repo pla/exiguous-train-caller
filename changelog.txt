@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.3
-Date: ????
+Date: 2025-03-05
+  Info:
+    - Deletion of Interrupts should gone now
   Changes:
     - Set minimum Factorio Version to 2.0.38, because API for schedule and interrupts introduced
     - schedule handling according to new API
