@@ -63,21 +63,14 @@ end
 local function remove_current_stop(train)
   local schedule = train.get_schedule()
   ---@type ScheduleRecord?
-  local current = schedule.get_record({schedule_index = schedule.current})
+  local current = schedule.get_record({ schedule_index = schedule.current })
 
   if current and current.temporary and not current.created_by_interrupt then
-    schedule.remove_record({schedule_index = schedule.current})
-
-    -- local len = schedule.get_record_count() or 0
-    -- if len > 0 then
-    --   if schedule.current > len then
-    --     schedule.current = 1
-    --   end
-    -- end
+    schedule.remove_record({ schedule_index = schedule.current })
   end
 end
 
----Adds a new record 
+---Adds a new record
 ---@param train LuaTrain
 ---@param the_rail LuaEntity
 ---@param player LuaPlayer
@@ -90,31 +83,30 @@ local function add_record(train, the_rail, player)
   local new_index = schedule.add_record({
     rail = the_rail,
     temporary = true,
-    index = {schedule_index = schedule.current}
+    index = { schedule_index = schedule.current }
   })
 
   if new_index == nil then return 0 end
   if mode == "Automatic" then
     -- schedule.remove_wait_condition({schedule_index = new_index}, 1)
-    schedule.add_wait_condition( {schedule_index = new_index}, 1, "time" )
-    schedule.add_wait_condition( {schedule_index = new_index}, 2, "passenger_present" )
-    schedule.change_wait_condition( {schedule_index = new_index}, 1,
+    schedule.add_wait_condition({ schedule_index = new_index }, 1, "time")
+    schedule.add_wait_condition({ schedule_index = new_index }, 2, "passenger_present")
+    schedule.change_wait_condition({ schedule_index = new_index }, 1,
       {
         type = "time",
         compare_type = "or",
         ticks = wait,
       }
     )
-    schedule.change_wait_condition( {schedule_index = new_index}, 2,
+    schedule.change_wait_condition({ schedule_index = new_index }, 2,
       {
         type = "passenger_present",
         compare_type = "or",
       }
     )
-
   else -- manual mode
-    schedule.add_wait_condition( {schedule_index = new_index}, 1, "time" )
-    schedule.change_wait_condition( {schedule_index = new_index}, 1,
+    schedule.add_wait_condition({ schedule_index = new_index }, 1, "time")
+    schedule.change_wait_condition({ schedule_index = new_index }, 1,
       {
         type = "time",
         compare_type = "or",
@@ -249,9 +241,8 @@ local function on_train_schedule_changed(event)
   if storage.trains[train.id] and storage.trains[train.id].state == "working" then
     --if the current is no temp then give the train up
     local schedule = train.get_schedule()
-    local current = schedule.get_record(schedule.current)
+    local current = schedule.get_record({ schedule_index = schedule.current })
     if current and current.temporary == false then
-
       set_idle(train)
       if storage.trains[train.id].player.valid then
         storage.trains[train.id].player.print({ "etc.schedule-changed", storage.trains[train.id].loco,
