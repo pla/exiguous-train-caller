@@ -1,7 +1,19 @@
 local util = require("__core__.lualib.util")
 
 local SEARCH_RANGE = 16
-
+local rails_types = {
+  "straight-rail",
+  "curved-rail-a",
+  "curved-rail-b",
+  "half-diagonal-rail",
+  "elevated-straight-rail",
+  "elevated-curved-rail-a",
+  "elevated-curved-rail-b",
+  "elevated-half-diagonal-rail",
+  "legacy-straight-rail",
+  "legacy-curved-rail",
+  "rail-ramp",
+}
 
 local function control(string)
   return "__CONTROL__" .. string .. "__"
@@ -14,7 +26,7 @@ local function new_train(player, train, input_name, surface_index, unit_number)
     train = train,
     key = input_name,
     surface_index = surface_index,
-    loco = unit_number
+    loco = unit_number,
   }
 end
 
@@ -49,12 +61,11 @@ local function register_train(player, train, event)
 
   etc[player_id][surface_index][event.input_name] = player.opened -- locomotive
 
-  storage.trains[train.id] = new_train(player, train, event.input_name, surface_index,
-    player.opened.unit_number)
+  storage.trains[train.id] = new_train(player, train, event.input_name, surface_index, player.opened.unit_number)
   player.print({ "etc.registered", player.opened.unit_number, control(event.input_name) })
   player.create_local_flying_text({
     text = { "etc.registered", player.opened.unit_number, control(event.input_name) },
-    position = player.position
+    position = player.position,
   })
 end
 
@@ -83,36 +94,32 @@ local function add_record(train, the_rail, player)
   local new_index = schedule.add_record({
     rail = the_rail,
     temporary = true,
-    index = { schedule_index = schedule.current }
+    index = { schedule_index = schedule.current },
   })
 
-  if new_index == nil then return 0 end
+  if new_index == nil then
+    return 0
+  end
   if mode == "Automatic" then
     -- schedule.remove_wait_condition({schedule_index = new_index}, 1)
     schedule.add_wait_condition({ schedule_index = new_index }, 1, "time")
     schedule.add_wait_condition({ schedule_index = new_index }, 2, "passenger_present")
-    schedule.change_wait_condition({ schedule_index = new_index }, 1,
-      {
-        type = "time",
-        compare_type = "or",
-        ticks = wait,
-      }
-    )
-    schedule.change_wait_condition({ schedule_index = new_index }, 2,
-      {
-        type = "passenger_present",
-        compare_type = "or",
-      }
-    )
+    schedule.change_wait_condition({ schedule_index = new_index }, 1, {
+      type = "time",
+      compare_type = "or",
+      ticks = wait,
+    })
+    schedule.change_wait_condition({ schedule_index = new_index }, 2, {
+      type = "passenger_present",
+      compare_type = "or",
+    })
   else -- manual mode
     schedule.add_wait_condition({ schedule_index = new_index }, 1, "time")
-    schedule.change_wait_condition({ schedule_index = new_index }, 1,
-      {
-        type = "time",
-        compare_type = "or",
-        ticks = 60,
-      }
-    )
+    schedule.change_wait_condition({ schedule_index = new_index }, 1, {
+      type = "time",
+      compare_type = "or",
+      ticks = 60,
+    })
   end
 
   -- move new record to "current"
@@ -129,11 +136,11 @@ local function find_rail(player)
   local the_rail = nil --[[@as LuaEntity]]
 
   local rails = player.physical_surface.find_entities_filtered({
-    type = { "straight-rail", "curved-rail-a", "curved-rail-b", "half-diagonal-rail", "legacy-straight-rail", "legacy-curved-rail", "rail-ramp" },
+    type = rails_types,
     force = player.force,
     to_be_deconstructed = false,
     position = position,
-    radius = SEARCH_RANGE
+    radius = SEARCH_RANGE,
   })
 
   if table_size(rails) == 0 then
@@ -183,10 +190,14 @@ end
 ---@param event EventData.CustomInputEvent
 local function on_call_train(event)
   local player = game.get_player(event.player_index) --[[@as LuaPlayer]]
-  if not player then return end
-  if storage.etc[event.player_index] and
-      storage.etc[event.player_index][player.physical_surface_index] and
-      storage.etc[event.player_index][player.physical_surface_index][event.input_name] then
+  if not player then
+    return
+  end
+  if
+    storage.etc[event.player_index]
+    and storage.etc[event.player_index][player.physical_surface_index]
+    and storage.etc[event.player_index][player.physical_surface_index][event.input_name]
+  then
     -- send train if possible
     local loco = storage.etc[event.player_index][player.physical_surface_index][event.input_name]
     -- check loco exists
@@ -201,8 +212,8 @@ local function on_call_train(event)
     local train = loco.train
     if not storage.trains[train.id] then
       clear_oprphan_trains()
-      storage.trains[train.id] = new_train(player, train, event.input_name, player.physical_surface_index,
-        loco.unit_number)
+      storage.trains[train.id] =
+        new_train(player, train, event.input_name, player.physical_surface_index, loco.unit_number)
     end
     -- check if player in train then open loco gui
     if player.vehicle and player.vehicle.type == "locomotive" and player.vehicle.train.id == train.id then
@@ -212,7 +223,9 @@ local function on_call_train(event)
     -- sending train finally
     -- rfind ail in reach
     local the_rail = find_rail(player)
-    if not the_rail then return end
+    if not the_rail then
+      return
+    end
     -- train already in working state?
     if storage.trains[train.id].state == "working" or storage.trains[train.id].state == "waiting" then
       remove_current_stop(train)
@@ -222,9 +235,7 @@ local function on_call_train(event)
     set_working(train, the_rail, player)
   else
     -- register train if possible
-    if player.opened_gui_type == defines.gui_type.entity and
-        player.opened.type == "locomotive"
-    then
+    if player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive" then
       local train = player.opened.train --[[@as LuaTrain]]
       --todo:check if train isn't in working state atm, eg. for someone else
       register_train(player, train, event)
@@ -236,7 +247,9 @@ end
 
 local function on_train_schedule_changed(event)
   local train = event.train
-  if not event.player_index then return end
+  if not event.player_index then
+    return
+  end
   --is that an etc train?
   if storage.trains[train.id] and storage.trains[train.id].state == "working" then
     --if the current is no temp then give the train up
@@ -245,8 +258,11 @@ local function on_train_schedule_changed(event)
     if current and current.temporary == false then
       set_idle(train)
       if storage.trains[train.id].player.valid then
-        storage.trains[train.id].player.print({ "etc.schedule-changed", storage.trains[train.id].loco,
-          control(storage.trains[train.id].key) })
+        storage.trains[train.id].player.print({
+          "etc.schedule-changed",
+          storage.trains[train.id].loco,
+          control(storage.trains[train.id].key),
+        })
       end
     end
   end
@@ -254,20 +270,29 @@ end
 
 local function on_train_changed_state(event)
   local train = event.train
-  if train.state == defines.train_state.wait_station or
-      train.state == defines.train_state.no_path
-  then
+  if train.state == defines.train_state.wait_station or train.state == defines.train_state.no_path then
     --is that an etc train?
-    if not storage.trains then storage.trains = {} end
-    if not storage.trains[train.id] then return end
+    if not storage.trains then
+      storage.trains = {}
+    end
+    if not storage.trains[train.id] then
+      return
+    end
     local player = storage.trains[train.id].player
-    if not player then return end
+    if not player then
+      return
+    end
 
     if storage.trains[train.id].state == "working" then
       -- are we there yet?
       if train.state == defines.train_state.wait_station then
-        if storage.trains[train.id].rail.valid and train.front_end.rail.is_rail_in_same_rail_block_as(storage.trains[train.id].rail) then
-          if player.mod_settings["etc-arrival-action"].value == "Automatic" and not storage.trains[train.id].save_to_stop then
+        if
+          storage.trains[train.id].rail.valid
+          and train.front_end.rail.is_rail_in_same_rail_block_as(storage.trains[train.id].rail)
+        then
+          if
+            player.mod_settings["etc-arrival-action"].value == "Automatic" and not storage.trains[train.id].save_to_stop
+          then
             set_waiting(train)
           else
             remove_current_stop(train)
@@ -291,12 +316,8 @@ end
 
 local function check_player_in_etc_train(player, train)
   --check if player vehicle is train
-  if not (player and
-        player.vehicle and
-        player.vehicle.train and
-        player.vehicle.train.valid and
-        train and
-        train.valid)
+  if
+    not (player and player.vehicle and player.vehicle.train and player.vehicle.train.valid and train and train.valid)
   then
     return false
   end
@@ -307,28 +328,29 @@ local function check_player_in_etc_train(player, train)
   return false
 end
 
-
 ---react when player enters the train in waiting mode
 ---@param event EventData.on_player_driving_changed_state
 local function on_player_driving_changed_state(event)
-  if not (event.entity and
-        event.entity.valid and
-        event.entity.train and
-        event.entity.train.valid) then
+  if not (event.entity and event.entity.valid and event.entity.train and event.entity.train.valid) then
     return
   end
   local player = game.players[event.player_index]
   local train = event.entity.train
-  if not train or not train.valid then return end
+  if not train or not train.valid then
+    return
+  end
   -- check if etc train and waiting
-  if not check_player_in_etc_train(player, train) then return end
+  if not check_player_in_etc_train(player, train) then
+    return
+  end
 
   if storage.trains[train.id].state == "waiting" then
     remove_current_stop(train)
     set_idle(train)
     train.manual_mode = true
-  elseif storage.trains[train.id].state == "working" and
-      player.mod_settings["etc-arrival-action"].value == "Automatic" then
+  elseif
+    storage.trains[train.id].state == "working" and player.mod_settings["etc-arrival-action"].value == "Automatic"
+  then
     storage.trains[train.id].save_to_stop = true
   end
 end
@@ -350,7 +372,9 @@ script.on_event(defines.events.on_player_driving_changed_state, on_player_drivin
 
 commands.add_command("etc-list", { "etc.command-help" }, function(event)
   local player = game.get_player(event.player_index)
-  if player == nil then return end
+  if player == nil then
+    return
+  end
   for surface_index, register in pairs(storage.etc[event.player_index]) do
     player.print("Player: " .. player.name)
     player.print("Surface: " .. game.surfaces[surface_index].name)
