@@ -6,7 +6,7 @@ Date: ????
 Version: 2.0.5
 Date: 2025-08-20
   Changes:
-    - Trains ban be called to elevated rails now
+    - Trains can be called to elevated rails now
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.4
 Date: 2025-05-23
